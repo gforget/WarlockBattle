@@ -4,12 +4,14 @@
 #include "Warlock.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "WarlockAnimInstance.h"
+#include "Runtime/Engine/Classes/Animation/AnimSingleNodeInstance.h"
 
 // Sets default values
 AWarlock::AWarlock()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PrePhysics;
 }
 
 // Called when the game starts or when spawned
@@ -17,7 +19,6 @@ void AWarlock::BeginPlay()
 {
 	Super::BeginPlay();
 	SkeletalMeshRef = this->GetMesh();
-	SkeletalMeshRef->bEnableUpdateRateOptimizations = true;
 	
 	WarlockAnimInstance = Cast<UWarlockAnimInstance>(SkeletalMeshRef->GetAnimInstance());
 	CurrentMovementDirection = SkeletalMeshRef->GetRightVector();
@@ -27,9 +28,8 @@ void AWarlock::BeginPlay()
 void AWarlock::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
 	ObjectiveMovementDirection = CalculateMovementVector();
-	
+
 	CurrentMovementDirection = FVector
 	(
 		CurrentMovementDirection.X + (ObjectiveMovementDirection.X - CurrentMovementDirection.X)*ControllerDamping,
@@ -71,11 +71,15 @@ void AWarlock::Tick( float DeltaTime )
 		RotateSpineTowardDirection(CurrentLookAtDirection, Orientation);
 	}
 
-
+	Speed = GetCharacterMovement()->Velocity.Size()*Orientation;
+	
 	if (WarlockAnimInstance == nullptr) return;
+
 	WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size()*Orientation;
-	WarlockAnimInstance->IsAttacking = isAttacking;
-	WarlockAnimInstance->SpineRotation = RotationSpine;
+	WarlockAnimInstance->IsAttacking = IsAttacking;
+	WarlockAnimInstance->SpineRotation = SpineRotation;
+
+	SkeletalMeshRef->RefreshBoneTransforms();
 }
 
 void AWarlock::RotateSpineTowardDirection(FVector direction, int orientation)
@@ -91,7 +95,7 @@ void AWarlock::RotateSpineTowardDirection(FVector direction, int orientation)
 	}
 
 	FRotator LookAtRotator = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation(), this->GetActorLocation() + direction);
-	RotationSpine = FRotator(0.0f, LookAtRotator.Yaw + YawRotationCorrection - SkeletalMeshRef->GetComponentRotation().Yaw, 0.0f);
+	SpineRotation = FRotator(0.0f, LookAtRotator.Yaw + YawRotationCorrection - SkeletalMeshRef->GetComponentRotation().Yaw, 0.0f);
 }
 
 void AWarlock::RotateMeshTowardDirection(FVector direction, int orientation)
@@ -141,7 +145,7 @@ void AWarlock::SetLeft(float intensity)
 
 void AWarlock::SetAttack(bool value)
 {
-	isAttacking = value;
+	IsAttacking = value;
 }
 
 void AWarlock::SetLookAtDirection(FVector direction)

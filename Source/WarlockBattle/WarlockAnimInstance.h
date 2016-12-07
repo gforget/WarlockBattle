@@ -4,18 +4,15 @@
 
 #include "Animation/AnimInstance.h"
 #include "WarlockAnimInstance.generated.h"
+class AWarlock;
 
-/**
- * 
- */
-UCLASS()
+UCLASS(transient, Blueprintable, hideCategories = AnimInstance, BlueprintType)
 class WARLOCKBATTLE_API UWarlockAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 	
 	public:
 
-	/** Is Moving */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
 	bool IsAttacking;
 	
@@ -24,4 +21,12 @@ class WARLOCKBATTLE_API UWarlockAnimInstance : public UAnimInstance
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
 	FRotator SpineRotation;
+
+	UPROPERTY(EditAnywhere, Category = "Animation Elements")
+	UAnimMontage* PrimaryAttackMontage;
+
+	//virtual void NativeUpdateAnimation(float DeltaTimeX) override;
+
+	virtual void NativeInitializeAnimation() override;
+	virtual void NativeUpdateAnimation_WorkerThread(float DeltaTimeX) override;
 };

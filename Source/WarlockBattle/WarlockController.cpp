@@ -7,6 +7,7 @@
 AWarlockController::AWarlockController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PrePhysics;
 }
 
 void AWarlockController::BeginPlay()

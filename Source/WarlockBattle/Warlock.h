@@ -22,6 +22,13 @@ public:
 	void SetAttack(bool value);
 	void SetLookAtDirection(FVector direction);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
+	FRotator SpineRotation = FRotator::ZeroRotator;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
+	bool IsAttacking;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
+	float Speed;
+
 private:
 	AWarlock();
 
@@ -41,10 +48,6 @@ private:
 
 	float ForwardIntensity;
 	float RightIntensity;
-
-	FRotator RotationSpine = FRotator::ZeroRotator;
-
-	bool isAttacking;
 
 	int Orientation;
 

@@ -4,7 +4,7 @@
 #include "Warlock.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "WarlockAnimInstance.h"
-#include "Runtime/Engine/Classes/Animation/AnimSingleNodeInstance.h"
+#include "Runtime/Core/Public/Math/Vector.h"
 
 // Sets default values
 AWarlock::AWarlock()
@@ -21,98 +21,73 @@ void AWarlock::BeginPlay()
 	SkeletalMeshRef = this->GetMesh();
 	
 	WarlockAnimInstance = Cast<UWarlockAnimInstance>(SkeletalMeshRef->GetAnimInstance());
-	CurrentMovementDirection = SkeletalMeshRef->GetRightVector();
 }
 
 // Called every frame
 void AWarlock::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-	ObjectiveMovementDirection = CalculateMovementVector();
+	MovementDirection = CalculateMovementVector();
 
-	CurrentMovementDirection = FVector
-	(
-		CurrentMovementDirection.X + (ObjectiveMovementDirection.X - CurrentMovementDirection.X)*ControllerDamping,
-		CurrentMovementDirection.Y + (ObjectiveMovementDirection.Y - CurrentMovementDirection.Y)*ControllerDamping,
-		CurrentMovementDirection.Z + (ObjectiveMovementDirection.Z - CurrentMovementDirection.Z)*ControllerDamping
-	);
+	//CurrentMovementDirection = FVector
+	//(
+	//	CurrentMovementDirection.X + (ObjectiveMovementDirection.X - CurrentMovementDirection.X)*ControllerDamping,
+	//	CurrentMovementDirection.Y + (ObjectiveMovementDirection.Y - CurrentMovementDirection.Y)*ControllerDamping,
+	//	CurrentMovementDirection.Z + (ObjectiveMovementDirection.Z - CurrentMovementDirection.Z)*ControllerDamping
+	//);
 
-	CurrentLookAtDirection = FVector
-	(
-		CurrentLookAtDirection.X + (ObjectiveLookAtDirection.X - CurrentLookAtDirection.X)*ControllerDamping,
-		CurrentLookAtDirection.Y + (ObjectiveLookAtDirection.Y - CurrentLookAtDirection.Y)*ControllerDamping,
-		CurrentLookAtDirection.Z + (ObjectiveLookAtDirection.Z - CurrentLookAtDirection.Z)*ControllerDamping
-	);
+	//CurrentLookAtDirection = FVector
+	//(
+	//	CurrentLookAtDirection.X + (ObjectiveLookAtDirection.X - CurrentLookAtDirection.X)*ControllerDamping,
+	//	CurrentLookAtDirection.Y + (ObjectiveLookAtDirection.Y - CurrentLookAtDirection.Y)*ControllerDamping,
+	//	CurrentLookAtDirection.Z + (ObjectiveLookAtDirection.Z - CurrentLookAtDirection.Z)*ControllerDamping
+	//);
 
-	GetCharacterMovement()->AddInputVector(CurrentMovementDirection);
+	GetCharacterMovement()->AddInputVector(MovementDirection);
 	
-	if (ObjectiveMovementDirection.Size() != 0)
+	FRotator LookAtRotation = RotateMeshTowardDirection(LookAtDirection);
+	FRotator movementRotation = GetCharacterMovement()->Velocity.Rotation();
+	movementRotation.Yaw -= 90.0f;
+	float direction = FRotator::NormalizeAxis((movementRotation - LookAtRotation).Yaw);
+
+	if (WarlockAnimInstance == nullptr) return;
+
+	WarlockAnimInstance->IsAttacking = IsAttacking;
+	direction *= -1.0f;
+
+	if (FMath::Abs(direction) > 90.0f)
 	{
-		if (FVector::DotProduct(CurrentMovementDirection, CurrentLookAtDirection) < 0.0f)
+		ObjectiveSpeed = GetCharacterMovement()->Velocity.Size()*-1.0f;
+		//WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size()*-1.0f;
+		if (direction > 0)
 		{
-			Orientation = -1;
+			direction = 90.0f - (direction - 90.0f);
 		}
-		else 
+		else
 		{
-			Orientation = 1;
+			direction = -90.0f + ((direction + 90.0f)*-1.0f);
 		}
 
-		RotateMeshTowardDirection(CurrentMovementDirection, Orientation);
-		RotateSpineTowardDirection(CurrentLookAtDirection, Orientation);
+		//UE_LOG(LogTemp, Warning, TEXT("Rotation : %f"), direction);
+		WarlockAnimInstance->Direction = direction;
 	}
 	else 
 	{
-		Orientation = 1;
-		if (FVector::DotProduct(SkeletalMeshRef->GetRightVector(), ObjectiveLookAtDirection) < 0.0f)
-		{
-			RotateMeshTowardDirection(CurrentLookAtDirection, Orientation);
-		}
-		//RotateMeshTowardDirection(CurrentLookAtDirection, Orientation);
-		RotateSpineTowardDirection(CurrentLookAtDirection, Orientation);
+		ObjectiveSpeed = GetCharacterMovement()->Velocity.Size();
+		//WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size();
+		WarlockAnimInstance->Direction = direction;
 	}
 
-	Speed = GetCharacterMovement()->Velocity.Size()*Orientation;
-	
-	if (WarlockAnimInstance == nullptr) return;
-
-	WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size()*Orientation;
-	WarlockAnimInstance->IsAttacking = IsAttacking;
-	WarlockAnimInstance->SpineRotation = SpineRotation;
-
-	SkeletalMeshRef->RefreshBoneTransforms();
+	CurrentSpeed = CurrentSpeed + (ObjectiveSpeed - CurrentSpeed)*ControllerDamping;
+	WarlockAnimInstance->Speed = CurrentSpeed;
 }
 
-void AWarlock::RotateSpineTowardDirection(FVector direction, int orientation)
+FRotator AWarlock::RotateMeshTowardDirection(FVector direction)
 {
-	float YawCorrection;
-	if (orientation == 1)
-	{
-		YawCorrection = YawRotationCorrection;
-	}
-	else
-	{
-		YawCorrection = 180.0f;
-	}
-
 	FRotator LookAtRotator = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation(), this->GetActorLocation() + direction);
-	SpineRotation = FRotator(0.0f, LookAtRotator.Yaw + YawRotationCorrection - SkeletalMeshRef->GetComponentRotation().Yaw, 0.0f);
-}
-
-void AWarlock::RotateMeshTowardDirection(FVector direction, int orientation)
-{
-	float YawCorrection;
-	if (orientation == 1)
-	{
-		YawCorrection = YawRotationCorrection;
-	}
-	else
-	{
-		YawCorrection = YawRotationCorrectionBackward;
-	}
-
-	FRotator LookAtRotator = UKismetMathLibrary::FindLookAtRotation(this->GetActorLocation(), this->GetActorLocation() + direction);
-	FRotator FinalRotator = FRotator(0.0f, LookAtRotator.Yaw + YawCorrection, 0.0f);
+	FRotator FinalRotator = FRotator(0.0f, LookAtRotator.Yaw + YawRotationCorrection, 0.0f);
 	SkeletalMeshRef->SetWorldRotation(FinalRotator);
+	return FinalRotator;
 }
 
 FVector AWarlock::CalculateMovementVector() 
@@ -150,5 +125,5 @@ void AWarlock::SetAttack(bool value)
 
 void AWarlock::SetLookAtDirection(FVector direction)
 {
-	ObjectiveLookAtDirection = direction;
+	LookAtDirection = direction;
 }

@@ -20,13 +20,14 @@ class WARLOCKBATTLE_API UWarlockAnimInstance : public UAnimInstance
 	float Speed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
-	FRotator SpineRotation;
+	float Direction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
+	float AnimationRate;
 
 	UPROPERTY(EditAnywhere, Category = "Animation Elements")
 	UAnimMontage* PrimaryAttackMontage;
 
-	//virtual void NativeUpdateAnimation(float DeltaTimeX) override;
-
+	virtual void NativeUpdateAnimation(float DeltaTimeX) override;
 	virtual void NativeInitializeAnimation() override;
-	virtual void NativeUpdateAnimation_WorkerThread(float DeltaTimeX) override;
 };

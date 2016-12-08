@@ -35,9 +35,8 @@ private:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	FVector CalculateMovementVector();
-	void RotateMeshTowardDirection(FVector direction, int orientation);
-	void RotateSpineTowardDirection(FVector direction, int orientation);
-
+	FRotator RotateMeshTowardDirection(FVector direction);
+	
 	USkeletalMeshComponent* SkeletalMeshRef;
 	UWarlockAnimInstance* WarlockAnimInstance;
 
@@ -49,13 +48,11 @@ private:
 	float ForwardIntensity;
 	float RightIntensity;
 
-	int Orientation;
+	float CurrentSpeed = 0.0f;
+	float ObjectiveSpeed;
 
-	FVector ObjectiveMovementDirection;
-	FVector CurrentMovementDirection;
-
-	FVector ObjectiveLookAtDirection = FVector::ZeroVector;
-	FVector CurrentLookAtDirection = FVector::ZeroVector;
+	FVector MovementDirection;
+	FVector LookAtDirection;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
 	float ControllerDamping = 0.5f;
@@ -63,6 +60,4 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
 	float YawRotationCorrection = -90.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
-	float YawRotationCorrectionBackward = -270.0f;
 };

@@ -98,7 +98,6 @@ void AWarlockController::MoveLeft(float intensity)
 void AWarlockController::AttackPress() 
 {
 	warlock->SetAttack(true);
-	//UE_LOG(LogTemp, Warning, TEXT("attafck press"));
 }
 
 void AWarlockController::AttackRelease()

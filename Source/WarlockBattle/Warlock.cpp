@@ -21,6 +21,7 @@ void AWarlock::BeginPlay()
 	SkeletalMeshRef = this->GetMesh();
 	
 	WarlockAnimInstance = Cast<UWarlockAnimInstance>(SkeletalMeshRef->GetAnimInstance());
+	CurrentLookAtDirection = SkeletalMeshRef->GetRightVector();
 }
 
 // Called every frame
@@ -29,57 +30,50 @@ void AWarlock::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 	MovementDirection = CalculateMovementVector();
 
-	//CurrentMovementDirection = FVector
-	//(
-	//	CurrentMovementDirection.X + (ObjectiveMovementDirection.X - CurrentMovementDirection.X)*ControllerDamping,
-	//	CurrentMovementDirection.Y + (ObjectiveMovementDirection.Y - CurrentMovementDirection.Y)*ControllerDamping,
-	//	CurrentMovementDirection.Z + (ObjectiveMovementDirection.Z - CurrentMovementDirection.Z)*ControllerDamping
-	//);
-
-	//CurrentLookAtDirection = FVector
-	//(
-	//	CurrentLookAtDirection.X + (ObjectiveLookAtDirection.X - CurrentLookAtDirection.X)*ControllerDamping,
-	//	CurrentLookAtDirection.Y + (ObjectiveLookAtDirection.Y - CurrentLookAtDirection.Y)*ControllerDamping,
-	//	CurrentLookAtDirection.Z + (ObjectiveLookAtDirection.Z - CurrentLookAtDirection.Z)*ControllerDamping
-	//);
-
 	GetCharacterMovement()->AddInputVector(MovementDirection);
-	
-	FRotator LookAtRotation = RotateMeshTowardDirection(LookAtDirection);
+
+	CurrentLookAtDirection = FVector
+	(
+	    CurrentLookAtDirection.X + (ObjectiveLookAtDirection.X - CurrentLookAtDirection.X)*RotationDamping,
+	    CurrentLookAtDirection.Y + (ObjectiveLookAtDirection.Y - CurrentLookAtDirection.Y)*RotationDamping,
+	    CurrentLookAtDirection.Z + (ObjectiveLookAtDirection.Z - CurrentLookAtDirection.Z)*RotationDamping
+	);
+
+	FRotator LookAtRotation = RotateMeshTowardDirection(CurrentLookAtDirection);
+
 	FRotator movementRotation = GetCharacterMovement()->Velocity.Rotation();
 	movementRotation.Yaw -= 90.0f;
-	float direction = FRotator::NormalizeAxis((movementRotation - LookAtRotation).Yaw);
 
+	ObjectiveDirection = FRotator::NormalizeAxis((movementRotation - LookAtRotation).Yaw);
+
+	// if the warlock anim instance is not found break
 	if (WarlockAnimInstance == nullptr) return;
 
-	WarlockAnimInstance->IsAttacking = IsAttacking;
-	direction *= -1.0f;
+	ObjectiveDirection *= -1.0f;
 
-	if (FMath::Abs(direction) > 90.0f)
+	if (FMath::Abs(ObjectiveDirection) > 135.0f)
 	{
 		ObjectiveSpeed = GetCharacterMovement()->Velocity.Size()*-1.0f;
-		//WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size()*-1.0f;
-		if (direction > 0)
+		if (ObjectiveDirection > 0)
 		{
-			direction = 90.0f - (direction - 90.0f);
+			ObjectiveDirection = 90.0f - (ObjectiveDirection - 90.0f);
 		}
 		else
 		{
-			direction = -90.0f + ((direction + 90.0f)*-1.0f);
+			ObjectiveDirection = -90.0f + ((ObjectiveDirection + 90.0f)*-1.0f);
 		}
-
-		//UE_LOG(LogTemp, Warning, TEXT("Rotation : %f"), direction);
-		WarlockAnimInstance->Direction = direction;
 	}
 	else 
 	{
-		ObjectiveSpeed = GetCharacterMovement()->Velocity.Size();
-		//WarlockAnimInstance->Speed = GetCharacterMovement()->Velocity.Size();
-		WarlockAnimInstance->Direction = direction;
+		ObjectiveSpeed = GetCharacterMovement()->Velocity.Size();		
 	}
 
-	CurrentSpeed = CurrentSpeed + (ObjectiveSpeed - CurrentSpeed)*ControllerDamping;
+	CurrentSpeed = CurrentSpeed + (ObjectiveSpeed - CurrentSpeed)*SpeedDamping;
+	CurrentDirection = CurrentDirection + (ObjectiveDirection - CurrentDirection)*RotationDamping;
+
 	WarlockAnimInstance->Speed = CurrentSpeed;
+	WarlockAnimInstance->Direction = CurrentDirection;
+	WarlockAnimInstance->IsAttacking = IsAttacking;
 }
 
 FRotator AWarlock::RotateMeshTowardDirection(FVector direction)
@@ -125,5 +119,5 @@ void AWarlock::SetAttack(bool value)
 
 void AWarlock::SetLookAtDirection(FVector direction)
 {
-	LookAtDirection = direction;
+	ObjectiveLookAtDirection = direction;
 }

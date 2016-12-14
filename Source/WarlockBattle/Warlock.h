@@ -29,6 +29,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Property")
 	float Speed;
 
+	//UFUNCTION(Category = "Character Action", BlueprintImplementableEvent, BlueprintCallable)
+	//void Attack1(bool);
+
 private:
 	AWarlock();
 
@@ -51,11 +54,19 @@ private:
 	float CurrentSpeed = 0.0f;
 	float ObjectiveSpeed;
 
+	float CurrentDirection = 0.0f;
+	float ObjectiveDirection;
+
 	FVector MovementDirection;
-	FVector LookAtDirection;
+
+	FVector CurrentLookAtDirection;
+	FVector ObjectiveLookAtDirection;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
-	float ControllerDamping = 0.5f;
+	float SpeedDamping = 0.25f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
+	float RotationDamping = 0.05f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Warlock Property")
 	float YawRotationCorrection = -90.0f;
